@@ -35,9 +35,9 @@ public class Main {
         Multimap<String, String> urisAndFiles = getUrisAndFiles(rawParams);
         Path outputPath = getPath(rawParams);
 
+
         Scheduler scheduler = new DowloadScheduler(numberOfThreads, speed, urisAndFiles, outputPath);
-        scheduler.start();
-        String results = scheduler.getResults();
+        String results = scheduler.start();
         System.out.println(results);
     }
 
