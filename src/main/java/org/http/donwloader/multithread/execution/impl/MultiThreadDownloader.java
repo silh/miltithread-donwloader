@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MultiThreadDownloader {
-    private static final int DEFAULT_BUFFER_ZISE = 8192;
+    private static final int DEFAULT_BUFFER_SIZE = 2048;
     private final long maxSpeed;
     private final AtomicLong leftForSec;
     private final int bufferSize;
@@ -22,7 +22,7 @@ public class MultiThreadDownloader {
     public MultiThreadDownloader(long maxSpeed) {
         this.maxSpeed = maxSpeed;
         this.leftForSec = new AtomicLong(maxSpeed);
-        bufferSize = maxSpeed > DEFAULT_BUFFER_ZISE ? DEFAULT_BUFFER_ZISE : (int) maxSpeed;
+        bufferSize = maxSpeed > DEFAULT_BUFFER_SIZE ? DEFAULT_BUFFER_SIZE : (int) maxSpeed;
         new Thread(() -> {
             while (working) {
                 try {
@@ -52,30 +52,36 @@ public class MultiThreadDownloader {
         long downloaded = 0L;
         byte[] buf = new byte[bufferSize];
         int n;
-        long currentLeft;
-        synchronized (leftForSec) {
-            currentLeft = leftForSec.get();
-            if (currentLeft < bufferSize) {
-                leftForSec.wait();
-            }
-        }
+        gate();
         while ((n = in.read(buf)) > 0) {
-            leftForSec.addAndGet(-n);
             for (OutputStream out : outs) {
                 out.write(buf, 0, n);
             }
             downloaded += n;
+            gate();
+        }
 
-            synchronized (leftForSec) {
-                currentLeft = leftForSec.get();
-                if (currentLeft < bufferSize) {
-                    System.out.println("Waiting: current left = " + currentLeft);
-                    leftForSec.wait();
-                }
-            }
+        in.close();
+        for (OutputStream out : outs) {
+            out.close();
         }
 
         return downloaded;
+    }
+
+    private void gate() throws InterruptedException {
+        long currentLeft;
+        synchronized (leftForSec) {
+            do {
+                currentLeft = leftForSec.get();
+                if (currentLeft < 0) {
+                    System.out.println(Thread.currentThread() + "Waiting: current left = " + currentLeft);
+                    leftForSec.wait();
+                } else {
+                    leftForSec.addAndGet(-bufferSize);
+                }
+            } while (currentLeft < 0);
+        }
     }
 
     public synchronized void start() {

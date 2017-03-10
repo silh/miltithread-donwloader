@@ -15,17 +15,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class DowloadScheduler implements Scheduler {
+public class DownloadScheduler implements Scheduler {
     private final ExecutorService executorService;
     private final Multimap<String, String> urisAndFiles;
     private final Path outputDirectory;
     private final String resultMessage = "Time spent = %d s, downloaded = %d bytes";
     private final MultiThreadDownloader downloader;
 
-    public DowloadScheduler(int numberOfThreads,
-                            long maxSpeed,
-                            Multimap<String, String> urisAndFiles,
-                            Path outputDirectory) {
+    public DownloadScheduler(int numberOfThreads,
+                             long maxSpeed,
+                             Multimap<String, String> urisAndFiles,
+                             Path outputDirectory) {
         executorService = Executors.newFixedThreadPool(numberOfThreads);
         this.urisAndFiles = urisAndFiles;
         this.outputDirectory = outputDirectory;
@@ -66,7 +66,7 @@ public class DowloadScheduler implements Scheduler {
 
     @Override
     public String toString() {
-        return "DowloadScheduler{" +
+        return "DownloadScheduler{" +
                 "executorService=" + executorService +
                 ", urisAndFiles=" + urisAndFiles +
                 ", outputDirectory=" + outputDirectory +

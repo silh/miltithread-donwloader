@@ -6,7 +6,7 @@ import com.google.common.collect.Multimap;
 import org.http.donwloader.multithread.collectors.MultimapCollector;
 import org.http.donwloader.multithread.exceptions.IncorrectSpeedException;
 import org.http.donwloader.multithread.execution.Scheduler;
-import org.http.donwloader.multithread.execution.impl.DowloadScheduler;
+import org.http.donwloader.multithread.execution.impl.DownloadScheduler;
 import org.http.donwloader.multithread.input.InputParamType;
 
 import java.io.IOException;
@@ -36,7 +36,7 @@ public class Main {
         Path outputPath = getPath(rawParams);
 
 
-        Scheduler scheduler = new DowloadScheduler(numberOfThreads, speed, urisAndFiles, outputPath);
+        Scheduler scheduler = new DownloadScheduler(numberOfThreads, speed, urisAndFiles, outputPath);
         String results = scheduler.start();
         System.out.println(results);
     }
