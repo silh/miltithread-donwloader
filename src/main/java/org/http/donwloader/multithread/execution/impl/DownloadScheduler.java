@@ -6,8 +6,6 @@ import org.http.donwloader.multithread.execution.Download;
 import org.http.donwloader.multithread.execution.Scheduler;
 
 import java.nio.file.Path;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -34,7 +32,7 @@ public class DownloadScheduler implements Scheduler {
 
     @Override
     public String start() {
-        Instant timeStarted = Instant.now();
+        long start = System.nanoTime();
 
         List<Future<Long>> results = new ArrayList<>();
         for (String uri : urisAndFiles.keySet()) {
@@ -57,11 +55,10 @@ public class DownloadScheduler implements Scheduler {
 
         downloader.stop();
 
-        Instant timeEnded = Instant.now();
-        Duration between = Duration.between(timeStarted, timeEnded);
-        long seconds = between.getSeconds();
+        long end = System.nanoTime();
+        long timeSpentSec = (end - start) / 1000000000;
 
-        return String.format(resultMessage, seconds, downloadedTotal);
+        return String.format(resultMessage, timeSpentSec, downloadedTotal);
     }
 
     @Override

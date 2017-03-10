@@ -10,33 +10,20 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class MultiThreadDownloader {
     private static final int DEFAULT_BUFFER_SIZE = 2048;
     private final long maxSpeed;
-    private final AtomicLong leftForSec;
     private final int bufferSize;
-    private boolean working = true;
+    private final Object lock = new Object();
+    private volatile long leftForSec;
+    private boolean working = false;
 
     public MultiThreadDownloader(long maxSpeed) {
         this.maxSpeed = maxSpeed;
-        this.leftForSec = new AtomicLong(maxSpeed);
+        this.leftForSec = maxSpeed;
         bufferSize = maxSpeed > DEFAULT_BUFFER_SIZE ? DEFAULT_BUFFER_SIZE : (int) maxSpeed;
-        new Thread(() -> {
-            while (working) {
-                try {
-                    Thread.sleep(1000L);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-
-                synchronized (leftForSec) {
-                    leftForSec.set(this.maxSpeed);
-                    leftForSec.notifyAll();
-                }
-            }
-        }).start();
+        start();
     }
 
     public long download(Download download) throws IOException, InterruptedException {
@@ -52,13 +39,13 @@ public class MultiThreadDownloader {
         long downloaded = 0L;
         byte[] buf = new byte[bufferSize];
         int n;
-        gate();
+        getSpeed();
         while ((n = in.read(buf)) > 0) {
             for (OutputStream out : outs) {
                 out.write(buf, 0, n);
             }
             downloaded += n;
-            gate();
+            getSpeed();
         }
 
         in.close();
@@ -69,19 +56,14 @@ public class MultiThreadDownloader {
         return downloaded;
     }
 
-    private void gate() throws InterruptedException {
+    private void getSpeed() throws InterruptedException {
         long currentLeft;
-        synchronized (leftForSec) {
-            do {
-                currentLeft = leftForSec.get();
-                if (currentLeft < 0) {
-                    System.out.println(Thread.currentThread() + "Waiting: current left = " + currentLeft);
-                    leftForSec.wait();
-                } else {
-                    leftForSec.addAndGet(-bufferSize);
-                }
-            } while (currentLeft < 0);
+//        synchronized (lock) {
+        while (leftForSec <= 0) {
+            Thread.sleep(250L);
         }
+        leftForSec = leftForSec - bufferSize;
+//        }
     }
 
     public synchronized void start() {
@@ -93,11 +75,10 @@ public class MultiThreadDownloader {
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-
-                    synchronized (leftForSec) {
-                        leftForSec.set(maxSpeed);
-                        leftForSec.notifyAll();
-                    }
+//                    synchronized (lock) {
+                    leftForSec = maxSpeed;
+//                        lock.notifyAll();
+//                    }
                 }
             }).start();
             working = true;
