@@ -5,11 +5,7 @@ import org.http.donwloader.multithread.execution.Download;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 public class MultiThreadDownloader {
     private static final int DEFAULT_BUFFER_SIZE = 2048;
@@ -29,41 +25,36 @@ public class MultiThreadDownloader {
     public long download(Download download) throws IOException, InterruptedException {
         String urlString = download.getUrl();
         URL url = new URL(urlString);
-        Collection<String> fullFileNames = download.getFullFileNames();
-        InputStream in = url.openStream();
-        List<OutputStream> outs = new ArrayList<>();
-        for (String fullFileName : fullFileNames) {
-            outs.add(new FileOutputStream(fullFileName));
-        }
+        String fullFileName = download.getFullFileName();
 
-        long downloaded = 0L;
-        byte[] buf = new byte[bufferSize];
-        int n;
-        getSpeed();
-        while ((n = in.read(buf)) > 0) {
-            for (OutputStream out : outs) {
+        try (InputStream in = url.openStream(); FileOutputStream out = new FileOutputStream(fullFileName)) {
+            long downloaded = 0L;
+            byte[] buf = new byte[bufferSize];
+            int n;
+            while ((n = in.read(buf)) > 0) {
                 out.write(buf, 0, n);
+                downloaded += n;
+                getSpeed();
             }
-            downloaded += n;
-            getSpeed();
+            return downloaded;
         }
 
-        in.close();
-        for (OutputStream out : outs) {
-            out.close();
-        }
-
-        return downloaded;
     }
 
     private void getSpeed() throws InterruptedException {
-        long currentLeft;
-//        synchronized (lock) {
-        while (leftForSec <= 0) {
-            Thread.sleep(250L);
+        synchronized (lock) {
+            boolean waited = false;
+            long start = System.currentTimeMillis();
+            while (leftForSec <= 0) {
+                waited = true;
+                lock.wait();
+            }
+            long end = System.currentTimeMillis();
+            if (waited) {
+                System.out.printf("Thread = %s, waited for = %d \n", Thread.currentThread(), (end - start));
+            }
+            leftForSec = leftForSec - bufferSize;
         }
-        leftForSec = leftForSec - bufferSize;
-//        }
     }
 
     public synchronized void start() {
@@ -75,10 +66,10 @@ public class MultiThreadDownloader {
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-//                    synchronized (lock) {
-                    leftForSec = maxSpeed;
-//                        lock.notifyAll();
-//                    }
+                    synchronized (lock) {
+                        leftForSec = maxSpeed;
+                        lock.notifyAll();
+                    }
                 }
             }).start();
             working = true;

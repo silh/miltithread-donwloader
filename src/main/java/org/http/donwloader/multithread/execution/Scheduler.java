@@ -1,5 +1,7 @@
 package org.http.donwloader.multithread.execution;
 
+import java.util.Collection;
+
 public interface Scheduler {
-    String start();
+    String start(Collection<Download> toDownload);
 }
