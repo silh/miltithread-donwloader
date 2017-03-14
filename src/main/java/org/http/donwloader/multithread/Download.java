@@ -1,4 +1,4 @@
-package org.http.donwloader.multithread.execution;
+package org.http.donwloader.multithread;
 
 import java.io.File;
 

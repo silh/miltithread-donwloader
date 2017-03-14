@@ -3,7 +3,6 @@ package org.http.donwloader.multithread;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.http.donwloader.multithread.exceptions.IncorrectSpeedException;
-import org.http.donwloader.multithread.execution.Download;
 import org.http.donwloader.multithread.execution.Scheduler;
 import org.http.donwloader.multithread.execution.impl.DownloadScheduler;
 import org.http.donwloader.multithread.input.InputParamType;
@@ -31,12 +30,20 @@ public class Main {
 
         //Converting params to actual values
         int numberOfThreads = getNumberOfThreads(rawParams);
-        int speed = getSpeed(rawParams);
+        long speed = getSpeed(rawParams);
         List<Download> downloads = getDownloads(rawParams);
 
+        //Creating necessary directories, if they don't exist
+        String outputPath = rawParams.get(PATH_TO_RESULT);
+        Files.createDirectories(Paths.get(outputPath));
+
         Scheduler scheduler = new DownloadScheduler(numberOfThreads, speed);
-        String results = scheduler.start(downloads);
-        System.out.println(results);
+        try {
+            String results = scheduler.downloadBunch(downloads);
+            System.out.println(results);
+        } finally {
+            scheduler.stopDownloader();
+        }
     }
 
     private static Map<InputParamType, String> getRawParams(String[] args) {
@@ -66,9 +73,9 @@ public class Main {
         return numberOfThreads;
     }
 
-    private static int getSpeed(Map<InputParamType, String> rawParams) {
+    private static long getSpeed(Map<InputParamType, String> rawParams) {
         String speedString = rawParams.get(SPEED);
-        int speed;
+        long speed;
         //Checking if input is correct
         if (SPEED_PATTERN.matcher(speedString).matches()) {
             //If it's a number - using it
@@ -82,7 +89,7 @@ public class Main {
                     multiplier = ONE_K * ONE_K;
                 }
 
-                speed = Integer.parseInt(speedString.substring(0, speedString.length() - 1)) * multiplier;
+                speed = Long.parseLong(speedString.substring(0, speedString.length() - 1)) * multiplier;
             }
         } else {
             String message = String.format("Wrong input parameter speed - %s", speedString);

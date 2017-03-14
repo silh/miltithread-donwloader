@@ -1,4 +1,3 @@
 https://github.com/Ecwid/new-job/blob/master/Console-downloader.md Console-downloader1.md
-https://static.vtb24.ru/Documents/debitcards/vtb24_service_package_blank.pdf vtb24_service_package_blank.pdf
 https://winscp.net/download/files/20170309142272bcf99478f66714286f2259c5070758/WinSCP-5.9.4-Setup.exe winscp.exe
 https://download.jetbrains.com/idea/ideaIC-2016.3.5.exe idea.exe
